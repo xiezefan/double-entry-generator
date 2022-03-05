@@ -11,6 +11,10 @@ import (
 type Htsec struct {
 }
 
+func (h Htsec) IgnoreItem(_ *ir.Order, _ *config.Config) bool {
+	return false
+}
+
 func (h Htsec) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 	// uniqMap will be used to create the concepts.
 	uniqMap := make(map[string]bool)
