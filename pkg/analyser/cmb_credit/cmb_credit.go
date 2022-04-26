@@ -1,4 +1,4 @@
-package cmb
+package cmb_credit
 
 import (
 	"github.com/deb-sig/double-entry-generator/pkg/config"
@@ -7,41 +7,17 @@ import (
 	"log"
 )
 
-type CMB struct {
-}
+type CmbCredit struct {}
 
-func (c CMB) IgnoreItem(o *ir.Order, cfg *config.Config) bool {
-	if cfg.CMB == nil || (cfg.CMB.IgnoreItem == nil && cfg.CMB.IgnoreTxType == nil) {
-		return false
-	}
-
-	// get seperator
-	defaultSep := ","
-	matchFunc := util.SplitFindContains
-	if cfg.CMB.IgnoreItem != nil {
-		if matchFunc(*cfg.CMB.IgnoreItem, o.Item, defaultSep, true) {
-			return true
-		}
-	}
-	if cfg.CMB.IgnoreTxType != nil {
-		if matchFunc(*cfg.CMB.IgnoreTxType, o.TxTypeOriginal, defaultSep, true) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// GetAllCandidateAccounts returns all accounts defined in config.
-func (c CMB) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
+func (c CmbCredit) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 	// uniqMap will be used to create the concepts.
 	uniqMap := make(map[string]bool)
 
-	if cfg.CMB == nil || len(cfg.CMB.Rules) == 0 {
+	if cfg.CmbCredit == nil || len(cfg.CmbCredit.Rules) == 0 {
 		return uniqMap
 	}
 
-	for _, r := range cfg.CMB.Rules {
+	for _, r := range cfg.CmbCredit.Rules {
 		if r.MethodAccount != nil {
 			uniqMap[*r.MethodAccount] = true
 		}
@@ -57,7 +33,7 @@ func (c CMB) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 	return uniqMap
 }
 
-func (c CMB) GetAccounts(o *ir.Order, cfg *config.Config, _, _ string) (string, string, map[ir.Account]string) {
+func (c CmbCredit) GetAccounts(o *ir.Order, cfg *config.Config, target, provider string) (string, string, map[ir.Account]string) {
 	var resCommission string
 	// check this tx whether has commission
 	if o.Commission != 0 {
@@ -68,16 +44,18 @@ func (c CMB) GetAccounts(o *ir.Order, cfg *config.Config, _, _ string) (string, 
 		}
 	}
 
-	if cfg.CMB == nil || len(cfg.CMB.Rules) == 0 {
+	if cfg.CmbCredit == nil || len(cfg.CmbCredit.Rules) == 0 {
 		return cfg.DefaultMinusAccount, cfg.DefaultPlusAccount, map[ir.Account]string{
 			ir.CommissionAccount: resCommission,
 		}
 	}
 
+
+	// default TxType = Send
 	resMinus := cfg.DefaultMinusAccount
 	resPlus := cfg.DefaultPlusAccount
 
-	for _, r := range cfg.CMB.Rules {
+	for _, r := range cfg.CmbCredit.Rules {
 
 		match := true
 		// get seperator
@@ -94,18 +72,26 @@ func (c CMB) GetAccounts(o *ir.Order, cfg *config.Config, _, _ string) (string, 
 		if r.Money != nil {
 			match = match && *r.Money == o.Money
 		}
-
-		if r.Type != nil {
-			match = matchFunc(*r.Type, o.TxTypeOriginal, sep, match)
-		}
 		if r.TxType != nil {
-			match = matchFunc(*r.TxType, o.TypeOriginal, sep, match)
+			txType := ""
+			if o.TxType == ir.TxTypeSend {
+				txType = "支出"
+			} else if o.TxType == ir.TxTypeRecv {
+				txType = "收入"
+			}
+			match = matchFunc(*r.TxType, txType, sep, match)
 		}
 		if r.Method != nil {
 			match = matchFunc(*r.Method, o.Method, sep, match)
 		}
 		if r.Item != nil {
 			match = matchFunc(*r.Item, o.Item, sep, match)
+		}
+		if r.Category != nil {
+			match = matchFunc(*r.Category, o.Category, sep, match)
+		}
+		if r.Peer != nil {
+			match = matchFunc(*r.Peer, o.Peer, sep, match)
 		}
 
 		if match {
@@ -129,8 +115,37 @@ func (c CMB) GetAccounts(o *ir.Order, cfg *config.Config, _, _ string) (string, 
 			}
 		}
 	}
+
 	return resMinus, resPlus, map[ir.Account]string{
 		ir.CommissionAccount: resCommission,
 	}
 }
 
+func (c CmbCredit) IgnoreItem(o *ir.Order, cfg *config.Config) bool {
+
+	if cfg.CmbCredit == nil || (cfg.CmbCredit.IgnorePeer == nil && cfg.CmbCredit.IgnoreItem == nil && cfg.CmbCredit.IgnoreCategory == nil) {
+		return false
+	}
+
+	// get seperator
+	defaultSep := ","
+	matchFunc := util.SplitFindContains
+
+	if cfg.CmbCredit.IgnorePeer != nil {
+		if matchFunc(*cfg.CmbCredit.IgnorePeer, o.Peer, defaultSep, true) {
+			return true
+		}
+	}
+	if cfg.CmbCredit.IgnoreItem != nil {
+		if matchFunc(*cfg.CmbCredit.IgnoreItem, o.Item, defaultSep, true) {
+			return true
+		}
+	}
+	if cfg.CmbCredit.IgnoreCategory != nil {
+		if matchFunc(*cfg.CmbCredit.IgnoreCategory, o.Category, defaultSep, true) {
+			return true
+		}
+	}
+
+	return false
+}

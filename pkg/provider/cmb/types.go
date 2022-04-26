@@ -25,7 +25,7 @@ type Order struct {
 	TxType			string  // 交易类型
 	Item           	string  // 交易备注
 	Money			float64 // 金额
-	Balance			float64 // 金额
+	Balance			float64 // 余额
 	Account			string // 交易账号
 }
 
