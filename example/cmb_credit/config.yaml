@@ -1,0 +1,9 @@
+defaultMinusAccount: Assets:FIXME
+defaultPlusAccount: Expenses:FIXME
+defaultCommissionAccount: Expenses:Commission:FIXME
+defaultCurrency: CNY
+cmbCredit:
+  ignorePeer: 财付通
+  rules:
+    - method: 6xxx
+      methodAccount: Assets:CMB6xxx

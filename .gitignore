@@ -12,7 +12,10 @@
 *.out
 
 .vscode/
+.idea/
+
 bin/
+double-entry-generator
 
 # Alipay records
 alipay_records_*.csv
@@ -22,4 +25,4 @@ dist/
 # test outputs
 test/output
 
-.idea
+

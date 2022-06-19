@@ -1,0 +1,38 @@
+{
+  "respCode": "1000",
+  "respMsg": "操作成功",
+  "data": {
+    "rmbBillInfo": {
+      "amount": "1.78",
+      "billCycleStart": "20211207",
+      "billCycleEnd": "20220106",
+      "repaymentDate": "20220124",
+      "minPayment": "1.55"
+    },
+    "dollarBillInfo": {
+      "amount": "0.00",
+      "billCycleStart": "20211207",
+      "billCycleEnd": "20220106",
+      "repaymentDate": "20220124",
+      "minPayment": "0.00"
+    },
+    "detail": [
+      {
+        "billId": "0",
+        "billType": "DetailBill",
+        "billDate": "20220105092833",
+        "billMonth": "202201",
+        "org": "156",
+        "transactionAmount": "142.00",
+        "amount": "142.00",
+        "description": "中铁网络 （铁路客服12306）",
+        "postingDate": "20220106",
+        "location": "CN",
+        "totalStages": "",
+        "currentStages": "",
+        "remainingStages": "",
+        "transactionType": "消费",
+        "cardNo": "64XX"
+      }
+    ]
+  },
