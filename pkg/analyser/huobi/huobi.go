@@ -11,6 +11,11 @@ import (
 type Huobi struct {
 }
 
+func (h Huobi) IgnoreItem(_ *ir.Order, _ *config.Config) bool {
+	return false
+}
+
+
 func (h Huobi) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 	// uniqMap will be used to create the concepts.
 	uniqMap := make(map[string]bool)

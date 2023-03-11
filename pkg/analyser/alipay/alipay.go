@@ -12,6 +12,10 @@ import (
 type Alipay struct {
 }
 
+func (a Alipay) IgnoreItem(_ *ir.Order, _ *config.Config) bool {
+	return false
+}
+
 // GetAllCandidateAccounts returns all accounts defined in config.
 func (a Alipay) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 	// uniqMap will be used to create the concepts.

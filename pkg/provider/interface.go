@@ -18,6 +18,8 @@ package provider
 
 import (
 	"fmt"
+	"github.com/deb-sig/double-entry-generator/pkg/provider/cmb"
+	"github.com/deb-sig/double-entry-generator/pkg/provider/cmb_credit"
 
 	"github.com/deb-sig/double-entry-generator/pkg/consts"
 	"github.com/deb-sig/double-entry-generator/pkg/ir"
@@ -43,6 +45,10 @@ func New(name string) (Interface, error) {
 		return huobi.New(), nil
 	case consts.ProviderHtsec:
 		return htsec.New(), nil
+	case consts.ProviderCMB:
+		return cmb.New(), nil
+	case consts.ProviderCmbCredit:
+		return cmb_credit.New(), nil
 	default:
 		return nil, fmt.Errorf("Fail to create the provider for the given name %s", name)
 	}

@@ -1,31 +1,47 @@
-package wechat
+package cmb
 
 import (
-	"log"
-	"strings"
-
 	"github.com/deb-sig/double-entry-generator/pkg/config"
 	"github.com/deb-sig/double-entry-generator/pkg/ir"
 	"github.com/deb-sig/double-entry-generator/pkg/util"
+	"log"
 )
 
-type Wechat struct {
+type CMB struct {
 }
 
-func (h Wechat) IgnoreItem(_ *ir.Order, _ *config.Config) bool {
+func (c CMB) IgnoreItem(o *ir.Order, cfg *config.Config) bool {
+	if cfg.CMB == nil || (cfg.CMB.IgnoreItem == nil && cfg.CMB.IgnoreTxType == nil) {
+		return false
+	}
+
+	// get seperator
+	defaultSep := ","
+	matchFunc := util.SplitFindContains
+	if cfg.CMB.IgnoreItem != nil {
+		if matchFunc(*cfg.CMB.IgnoreItem, o.Item, defaultSep, true) {
+			return true
+		}
+	}
+	if cfg.CMB.IgnoreTxType != nil {
+		if matchFunc(*cfg.CMB.IgnoreTxType, o.TxTypeOriginal, defaultSep, true) {
+			return true
+		}
+	}
+
 	return false
 }
 
 // GetAllCandidateAccounts returns all accounts defined in config.
-func (w Wechat) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
+func (c CMB) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 	// uniqMap will be used to create the concepts.
 	uniqMap := make(map[string]bool)
 
-	if cfg.Wechat == nil || len(cfg.Wechat.Rules) == 0 {
+	if cfg.CMB == nil || len(cfg.CMB.Rules) == 0 {
 		return uniqMap
 	}
 
-	for _, r := range cfg.Wechat.Rules {
+	for _, r := range cfg.CMB.Rules {
 		if r.MethodAccount != nil {
 			uniqMap[*r.MethodAccount] = true
 		}
@@ -41,11 +57,9 @@ func (w Wechat) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 	return uniqMap
 }
 
-// GetAccounts returns minus and plus account.
-func (w Wechat) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, provider string) (string, string, map[ir.Account]string, []string) {
-	var resCommission string
-	var tags = make([]string, 0)
 
+func (c CMB) GetAccountsAndTags(o *ir.Order, cfg *config.Config, _, _ string) (string, string, map[ir.Account]string, []string) {
+	var resCommission string
 	// check this tx whether has commission
 	if o.Commission != 0 {
 		if cfg.DefaultCommissionAccount == "" {
@@ -55,22 +69,22 @@ func (w Wechat) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, prov
 		}
 	}
 
-	if cfg.Wechat == nil || len(cfg.Wechat.Rules) == 0 {
+	if cfg.CMB == nil || len(cfg.CMB.Rules) == 0 {
 		return cfg.DefaultMinusAccount, cfg.DefaultPlusAccount, map[ir.Account]string{
 			ir.CommissionAccount: resCommission,
-		}, nil
+		}, []string{}
 	}
 
 	resMinus := cfg.DefaultMinusAccount
 	resPlus := cfg.DefaultPlusAccount
 
-	var err error
-	for _, r := range cfg.Wechat.Rules {
+	for _, r := range cfg.CMB.Rules {
+
 		match := true
-		// get separator
+		// get seperator
 		sep := ","
-		if r.Separator != nil {
-			sep = *r.Separator
+		if r.Seperator != nil {
+			sep = *r.Seperator
 		}
 
 		matchFunc := util.SplitFindContains
@@ -78,32 +92,21 @@ func (w Wechat) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, prov
 			matchFunc = util.SplitFindEquals
 		}
 
-		if r.Peer != nil {
-			match = matchFunc(*r.Peer, o.Peer, sep, match)
+		if r.Money != nil {
+			match = match && *r.Money == o.Money
 		}
+
 		if r.Type != nil {
-			match = matchFunc(*r.Type, o.TypeOriginal, sep, match)
+			match = matchFunc(*r.Type, o.TxTypeOriginal, sep, match)
 		}
 		if r.TxType != nil {
-			match = matchFunc(*r.TxType, o.TxTypeOriginal, sep, match)
+			match = matchFunc(*r.TxType, o.TypeOriginal, sep, match)
 		}
 		if r.Method != nil {
 			match = matchFunc(*r.Method, o.Method, sep, match)
 		}
 		if r.Item != nil {
 			match = matchFunc(*r.Item, o.Item, sep, match)
-		}
-		if r.Time != nil {
-			match, err = util.SplitFindTimeInterval(*r.Time, o.PayTime, match)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		if r.TimestampRange != nil {
-			match, err = util.SplitFindTimeStampInterval(*r.TimestampRange, o.PayTime, match)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
 		}
 
 		if match {
@@ -125,16 +128,10 @@ func (w Wechat) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, prov
 			if r.CommissionAccount != nil {
 				resCommission = *r.CommissionAccount
 			}
-
-			if r.Tag != nil {
-				tags = strings.Split(*r.Tag, sep)
-			}
-
 		}
-
 	}
-
 	return resMinus, resPlus, map[ir.Account]string{
 		ir.CommissionAccount: resCommission,
-	}, tags
+	}, []string{}
 }
+
