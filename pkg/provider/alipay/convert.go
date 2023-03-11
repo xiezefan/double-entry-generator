@@ -10,15 +10,15 @@ func (a *Alipay) convertToIR() *ir.IR {
 	for _, o := range a.Orders {
 
 		irO := ir.Order{
-			Peer:         o.Peer,
-			Item:         o.ItemName,
-			Category:     o.Category,
-			Method:       o.Method,
-			PayTime:      o.PayTime,
-			Money:        o.Money,
-			OrderID:      &o.DealNo,
-			Type:         conevertType(o.Type),
-			TypeOriginal: o.TypeOriginal,
+			Peer:           o.Peer,
+			Item:           o.ItemName,
+			Category:       o.Category,
+			Method:         o.Method,
+			PayTime:        o.PayTime,
+			Money:          o.Money,
+			OrderID:        &o.DealNo,
+			TxType:         conevertType(o.TxType),
+			TxTypeOriginal: o.TxTypeOriginal,
 		}
 		irO.Metadata = getMetadata(o)
 		if o.MerchantId != "" {
@@ -29,14 +29,14 @@ func (a *Alipay) convertToIR() *ir.IR {
 	return i
 }
 
-func conevertType(t Type) ir.Type {
+func conevertType(t TxTypeType) ir.TxType {
 	switch t {
-	case TypeSend:
-		return ir.TypeSend
-	case TypeRecv:
-		return ir.TypeRecv
+	case TxTypeSend:
+		return ir.TxTypeSend
+	case TxTypeRecv:
+		return ir.TxTypeRecv
 	default:
-		return ir.TypeUnknown
+		return ir.TxTypeUnknown
 	}
 }
 
@@ -61,8 +61,8 @@ func getMetadata(o Order) map[string]string {
 		category = o.Category
 	}
 
-	if o.TypeOriginal != "" {
-		txType = o.TypeOriginal
+	if o.TxTypeOriginal != "" {
+		txType = o.TxTypeOriginal
 	}
 
 	if o.Method != "" {

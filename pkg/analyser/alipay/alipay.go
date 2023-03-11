@@ -38,20 +38,19 @@ func (a Alipay) GetAllCandidateAccounts(cfg *config.Config) map[string]bool {
 }
 
 // GetAccounts returns minus and plus account.
-func (a Alipay) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, provider string) (string, string, map[ir.Account]string, []string) {
+func (a Alipay) GetAccounts(o *ir.Order, cfg *config.Config, target, provider string) (string, string, map[ir.Account]string) {
 
 	if cfg.Alipay == nil || len(cfg.Alipay.Rules) == 0 {
-		return cfg.DefaultMinusAccount, cfg.DefaultPlusAccount, nil, nil
+		return cfg.DefaultMinusAccount, cfg.DefaultPlusAccount, nil
 	}
 	resMinus := cfg.DefaultMinusAccount
 	resPlus := cfg.DefaultPlusAccount
 	var extraAccounts map[ir.Account]string
-	var tags = make([]string, 0)
 
 	var err error
 	for _, r := range cfg.Alipay.Rules {
 		match := true
-		// get separator
+		// get seperator
 		sep := ","
 		if r.Separator != nil {
 			sep = *r.Separator
@@ -66,7 +65,7 @@ func (a Alipay) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, prov
 			match = matchFunc(*r.Peer, o.Peer, sep, match)
 		}
 		if r.Type != nil {
-			match = matchFunc(*r.Type, o.TypeOriginal, sep, match)
+			match = matchFunc(*r.Type, o.TxTypeOriginal, sep, match)
 		}
 		if r.Item != nil {
 			match = matchFunc(*r.Item, o.Item, sep, match)
@@ -83,25 +82,18 @@ func (a Alipay) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, prov
 				log.Fatalf(err.Error())
 			}
 		}
-		if r.TimestampRange != nil {
-			match, err = util.SplitFindTimeStampInterval(*r.TimestampRange, o.PayTime, match)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-
 		if match {
 			// Support multiple matches, like one rule matches the
-			// minus account, the other rule matches the plus account.
+			// minus accout, the other rule matches the plus account.
 			if r.TargetAccount != nil {
-				if o.Type == ir.TypeRecv {
+				if o.TxType == ir.TxTypeRecv {
 					resMinus = *r.TargetAccount
 				} else {
 					resPlus = *r.TargetAccount
 				}
 			}
 			if r.MethodAccount != nil {
-				if o.Type == ir.TypeRecv {
+				if o.TxType == ir.TxTypeRecv {
 					resPlus = *r.MethodAccount
 				} else {
 					resMinus = *r.MethodAccount
@@ -113,15 +105,11 @@ func (a Alipay) GetAccountsAndTags(o *ir.Order, cfg *config.Config, target, prov
 				}
 			}
 
-			if r.Tags != nil {
-				tags = strings.Split(*r.Tags, sep)
-			}
-
 		}
 	}
 
-	if strings.HasPrefix(o.Item, "退款-") && ir.TypeRecv != o.Type {
-		return resPlus, resMinus, extraAccounts, tags
+	if strings.HasPrefix(o.Item, "退款-") {
+		return resPlus, resMinus, extraAccounts
 	}
-	return resMinus, resPlus, extraAccounts, tags
+	return resMinus, resPlus, extraAccounts
 }

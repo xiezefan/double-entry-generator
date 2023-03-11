@@ -1,19 +1,20 @@
 package huobi
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"log"
+	"os"
 
-	"github.com/deb-sig/double-entry-generator/pkg/io/reader"
 	"github.com/deb-sig/double-entry-generator/pkg/ir"
 )
 
 type Huobi struct {
 	Statistics Statistics `json:"statistics,omitempty"`
-	LineNum    int        `json:"line_num,omitempty"`
-	Orders     []Order    `json:"orders,omitempty"`
+	LineNum    int        `json:"line_num,omitempty`
+	Orders     []Order    `json:"orders,omitempty`
 }
 
 func New() *Huobi {
@@ -27,19 +28,19 @@ func New() *Huobi {
 func (h *Huobi) Translate(filename string) (*ir.IR, error) {
 	log.SetPrefix("[Provider-Huobi] ")
 
-	billReader, err := reader.GetReader(filename)
+	csvFile, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("can't get bill reader, err: %v", err)
+		return nil, err
 	}
 
-	csvReader := csv.NewReader(billReader)
-	csvReader.LazyQuotes = true
+	reader := csv.NewReader(bufio.NewReader(csvFile))
+	reader.LazyQuotes = true
 	// If FieldsPerRecord is negative, no check is made and records
 	// may have a variable number of fields.
-	csvReader.FieldsPerRecord = -1
+	reader.FieldsPerRecord = -1
 
 	for {
-		line, err := csvReader.Read()
+		line, err := reader.Read()
 
 		if err == io.EOF {
 			break

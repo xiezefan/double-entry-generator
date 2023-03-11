@@ -1,21 +1,21 @@
 package huobi
 
-func getTxType(s string) TxType {
+func getOrderType(s string) OrderType {
 	switch s {
-	case string(TxTypeCoin):
-		return TxTypeCoin
+	case string(OrderTypeCoin):
+		return OrderTypeCoin
 	default:
-		return TxTypeUnknown
+		return OrderTypeUnknown
 	}
 }
 
-func getOrderType(s string) OrderType {
+func getTxType(s string) TxType {
 	switch s {
-	case string(TypeBuy):
-		return TypeBuy
-	case string(TypeSell):
-		return TypeSell
+	case string(TxTypeBuy):
+		return TxTypeBuy
+	case string(TxTypeSell):
+		return TxTypeSell
 	default:
-		return TypeNil
+		return TxTypeNil
 	}
 }

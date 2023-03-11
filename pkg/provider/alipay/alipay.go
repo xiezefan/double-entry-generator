@@ -17,13 +17,17 @@ limitations under the License.
 package alipay
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
-	"github.com/deb-sig/double-entry-generator/pkg/io/reader"
-	"github.com/deb-sig/double-entry-generator/pkg/ir"
 	"io"
 	"log"
-	"strings"
+	"os"
+
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
+
+	"github.com/deb-sig/double-entry-generator/pkg/ir"
 )
 
 // Alipay is the provider for alipay.
@@ -50,19 +54,19 @@ func New() *Alipay {
 func (a *Alipay) Translate(filename string) (*ir.IR, error) {
 	log.SetPrefix("[Provider-Alipay] ")
 
-	billReader, err := reader.GetGBKReader(filename)
+	csvFile, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("can't get bill reader, err: %v", err)
+		return nil, err
 	}
 
-	csvReader := csv.NewReader(billReader)
-	csvReader.LazyQuotes = true
+	reader := csv.NewReader(transform.NewReader(bufio.NewReader(csvFile),
+		simplifiedchinese.GBK.NewDecoder()))
 	// If FieldsPerRecord is negative, no check is made and records
 	// may have a variable number of fields.
-	csvReader.FieldsPerRecord = -1
+	reader.FieldsPerRecord = -1
 
 	for {
-		line, err := csvReader.Read()
+		line, err := reader.Read()
 
 		if err == io.EOF {
 			break
@@ -70,14 +74,9 @@ func (a *Alipay) Translate(filename string) (*ir.IR, error) {
 			return nil, err
 		}
 
-		if a.LineNum == 0 && strings.Contains(line[0], "支付宝") {
-			return nil, fmt.Errorf("可能为支付宝老版本 csv 账单，请使用 1.7.0 及之前的版本尝试转换")
-		}
-
-		a.LineNum++
-
-		if a.LineNum <= 23 {
-			// bypass the useless
+		if len(line) != 12 {
+			// TODO(gaocegege): Support statistics.
+			a.LineNum++
 			continue
 		}
 

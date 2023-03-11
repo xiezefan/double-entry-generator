@@ -9,9 +9,9 @@ func (h *Huobi) convertToIR() *ir.IR {
 			OrderType:      ir.OrderTypeHuobiTrade,
 			Peer:           "Huobi",
 			PayTime:        o.PayTime,
-			TxTypeOriginal: o.TxTypeOriginal,
-			Type:           convertType(o.Type),
-			TypeOriginal:   string(o.Type),
+			TypeOriginal:   o.TypeOriginal,
+			TxType:         convertType(o.TxType),
+			TxTypeOriginal: string(o.TxType),
 			Item:           o.Item,
 			Money:          o.Money,
 			Amount:         o.Amount,
@@ -28,13 +28,13 @@ func (h *Huobi) convertToIR() *ir.IR {
 	return i
 }
 
-func convertType(t OrderType) ir.Type {
+func convertType(t TxType) ir.TxType {
 	switch t {
-	case TypeBuy:
-		return ir.TypeSend
-	case TypeSell:
-		return ir.TypeRecv
+	case TxTypeBuy:
+		return ir.TxTypeSend
+	case TxTypeSell:
+		return ir.TxTypeRecv
 	default:
-		return ir.TypeUnknown
+		return ir.TxTypeUnknown
 	}
 }

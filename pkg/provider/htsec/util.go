@@ -1,6 +1,6 @@
 package htsec
 
-func getTxType(s string) OrderType {
+func getTxType(s string) TxType {
 	switch s {
 	case string(TxTypeBuy):
 		return TxTypeBuy

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"sort"
 	"text/template"
 
 	"github.com/deb-sig/double-entry-generator/pkg/analyser"
+
 	"github.com/deb-sig/double-entry-generator/pkg/config"
-	"github.com/deb-sig/double-entry-generator/pkg/io/writer"
 	"github.com/deb-sig/double-entry-generator/pkg/ir"
-	"github.com/deb-sig/double-entry-generator/pkg/util"
 )
 
 // BeanCount is the implementation.
@@ -29,8 +29,7 @@ type BeanCount struct {
 
 // New creates a new BeanCount.
 func New(providerName, targetName, output string,
-	appendMode bool, c *config.Config, i *ir.IR, a analyser.Interface,
-) (*BeanCount, error) {
+	appendMode bool, c *config.Config, i *ir.IR, a analyser.Interface) (*BeanCount, error) {
 	b := &BeanCount{
 		Provider:   providerName,
 		Target:     targetName,
@@ -49,32 +48,28 @@ func New(providerName, targetName, output string,
 
 func (b *BeanCount) initTemplates() error {
 	// init the templates
-	funcMap := template.FuncMap{
-		"EscapeString": util.EscapeString,
-	}
-
 	var err error
-	normalOrderTemplate, err = template.New("normalOrder").Funcs(funcMap).Parse(normalOrder)
+	normalOrderTemplate, err = template.New("normalOrder").Parse(normalOrder)
 	if err != nil {
 		return fmt.Errorf("Failed to init the normalOrder template. %v", err)
 	}
-	huobiTradeBuyOrderTemplate, err = template.New("tradeBuyOrder").Funcs(funcMap).Parse(huobiTradeBuyOrder)
+	huobiTradeBuyOrderTemplate, err = template.New("tradeBuyOrder").Parse(huobiTradeBuyOrder)
 	if err != nil {
 		return fmt.Errorf("Failed to init the tradeBuyOrder template. %v", err)
 	}
-	huobiTradeBuyOrderDiffCommissionUnitTemplate, err = template.New("tradeBuyOrderDiffCommissionUnit").Funcs(funcMap).Parse(huobiTradeBuyOrderDiffCommissionUnit)
+	huobiTradeBuyOrderDiffCommissionUnitTemplate, err = template.New("tradeBuyOrderDiffCommissionUnit").Parse(huobiTradeBuyOrderDiffCommissionUnit)
 	if err != nil {
 		return fmt.Errorf("Failed to init the tradeBuyOrderDiffCommissionUnit template. %v", err)
 	}
-	huobiTradeSellOrderTemplate, err = template.New("tradeSellOrder").Funcs(funcMap).Parse(huobiTradeSellOrder)
+	huobiTradeSellOrderTemplate, err = template.New("tradeSellOrder").Parse(huobiTradeSellOrder)
 	if err != nil {
 		return fmt.Errorf("Failed to init the tradeSellOrder template. %v", err)
 	}
-	htsecTradeBuyOrderTemplate, err = template.New("httradeBuyOrder").Funcs(funcMap).Parse(htsecTradeBuyOrder)
+	htsecTradeBuyOrderTemplate, err = template.New("httradeBuyOrder").Parse(htsecTradeBuyOrder)
 	if err != nil {
 		return fmt.Errorf("Failed to init the httradeBuyOrder template. %v", err)
 	}
-	htsecTradeSellOrderTemplate, err = template.New("httradeSellOrder").Funcs(funcMap).Parse(htsecTradeSellOrder)
+	htsecTradeSellOrderTemplate, err = template.New("httradeSellOrder").Parse(htsecTradeSellOrder)
 	if err != nil {
 		return fmt.Errorf("Failed to init the httradeSellOrder template. %v", err)
 	}
@@ -87,36 +82,31 @@ func (b *BeanCount) Compile() error {
 	log.Printf("Getting the expected account for the bills")
 	for index, o := range b.IR.Orders {
 		// Get the expected accounts according to the configuration.
-		minusAccount, plusAccount, extraAccounts, tags := b.GetAccountsAndTags(&o, b.Config, b.Provider, b.Target)
+		minusAccount, plusAccount, extraAccounts := b.GetAccounts(&o, b.Config, b.Provider, b.Target)
 		b.IR.Orders[index].MinusAccount = minusAccount
 		b.IR.Orders[index].PlusAccount = plusAccount
 		b.IR.Orders[index].ExtraAccounts = extraAccounts
-		b.IR.Orders[index].Tags = tags
 	}
 
-	outputWriter, err := writer.GetWriter(b.Output)
+	log.Printf("Writing to %s", b.Output)
+	file, err := os.Create(b.Output)
 	if err != nil {
-		return fmt.Errorf("can't get output writer, err: %v", err)
+		return fmt.Errorf("create output file  %s error: %v", b.Output, err)
 	}
-	defer func(outputWriter writer.OutputWriter) {
-		err := outputWriter.Close()
-		if err != nil {
-			log.Printf("output writer close err: %v\n", err)
-		}
-	}(outputWriter)
+	defer file.Close()
 
 	if !b.AppendMode {
-		if err := b.writeHeader(outputWriter); err != nil {
+		if err := b.writeHeader(file); err != nil {
 			return err
 		}
 	}
 
 	log.Printf("Finished to write to %s", b.Output)
-	return b.writeBills(outputWriter)
+	return b.writeBills(file)
 }
 
 // writeHeader writes the acounts and title into the file.
-func (b *BeanCount) writeHeader(file io.Writer) error {
+func (b *BeanCount) writeHeader(file *os.File) error {
 	_, err := io.WriteString(file, "option \"title\" \""+b.Config.Title+"\"\n")
 	if err != nil {
 		return fmt.Errorf("write option title error: %v", err)
@@ -150,7 +140,7 @@ func (b *BeanCount) writeHeader(file io.Writer) error {
 }
 
 // writeBills writes bills to the file.
-func (b *BeanCount) writeBills(file io.Writer) error {
+func (b *BeanCount) writeBills(file *os.File) error {
 	// Sort the bills from earliest to lastest.
 	// If the bills are the same day, the tx which has lower
 	// line number is considered happened earlier than the tx
@@ -167,7 +157,7 @@ func (b *BeanCount) writeBills(file io.Writer) error {
 	return nil
 }
 
-func (b *BeanCount) writeBill(file io.Writer, index int) error {
+func (b *BeanCount) writeBill(file *os.File, index int) error {
 	o := b.IR.Orders[index]
 
 	var buf bytes.Buffer
@@ -190,11 +180,10 @@ func (b *BeanCount) writeBill(file io.Writer, index int) error {
 			CommissionAccount: o.ExtraAccounts[ir.CommissionAccount],
 			Metadata:          o.Metadata,
 			Currency:          b.Config.DefaultCurrency,
-			Tags:              o.Tags,
 		})
 	case ir.OrderTypeHuobiTrade: // Huobi trades
-		switch o.Type {
-		case ir.TypeSend: // buy
+		switch o.TxType {
+		case ir.TxTypeSend: // buy
 			isDiffCommissionUnit := false
 			commissionUnit, ok := o.Units[ir.CommissionUnit]
 			if !ok {
@@ -213,8 +202,8 @@ func (b *BeanCount) writeBill(file io.Writer, index int) error {
 				err = huobiTradeBuyOrderDiffCommissionUnitTemplate.Execute(&buf, &HuobiTradeBuyOrderVars{
 					PayTime:           o.PayTime,
 					Peer:              o.Peer,
-					TxTypeOriginal:    o.TxTypeOriginal,
 					TypeOriginal:      o.TypeOriginal,
+					TxTypeOriginal:    o.TxTypeOriginal,
 					Item:              o.Item,
 					Amount:            o.Amount,
 					Money:             o.Money,
@@ -232,8 +221,8 @@ func (b *BeanCount) writeBill(file io.Writer, index int) error {
 				err = huobiTradeBuyOrderTemplate.Execute(&buf, &HuobiTradeBuyOrderVars{
 					PayTime:           o.PayTime,
 					Peer:              o.Peer,
-					TxTypeOriginal:    o.TxTypeOriginal,
 					TypeOriginal:      o.TypeOriginal,
+					TxTypeOriginal:    o.TxTypeOriginal,
 					Item:              o.Item,
 					Amount:            o.Amount,
 					Money:             o.Money,
@@ -248,12 +237,12 @@ func (b *BeanCount) writeBill(file io.Writer, index int) error {
 					CommissionUnit:    o.Units[ir.CommissionUnit],
 				})
 			}
-		case ir.TypeRecv: // sell
+		case ir.TxTypeRecv: // sell
 			err = huobiTradeSellOrderTemplate.Execute(&buf, &HuobiTradeSellOrderVars{
 				PayTime:           o.PayTime,
 				Peer:              o.Peer,
-				TxTypeOriginal:    o.TxTypeOriginal,
 				TypeOriginal:      o.TypeOriginal,
+				TxTypeOriginal:    o.TxTypeOriginal,
 				Item:              o.Item,
 				Amount:            o.Amount,
 				Money:             o.Money,
@@ -271,13 +260,13 @@ func (b *BeanCount) writeBill(file io.Writer, index int) error {
 			err = fmt.Errorf("Failed to get the TxType.")
 		}
 	case ir.OrderTypeSecuritiesTrade:
-		switch o.Type {
-		case ir.TypeSend: // buy
+		switch o.TxType {
+		case ir.TxTypeSend: // buy
 			err = htsecTradeBuyOrderTemplate.Execute(&buf, &HtsecTradeBuyOrderVars{
 				PayTime:           o.PayTime,
 				Peer:              o.Peer,
-				TxTypeOriginal:    o.TxTypeOriginal,
 				TypeOriginal:      o.TypeOriginal,
+				TxTypeOriginal:    o.TxTypeOriginal,
 				Item:              o.Item,
 				Amount:            o.Amount,
 				Money:             o.Money,
@@ -292,12 +281,12 @@ func (b *BeanCount) writeBill(file io.Writer, index int) error {
 				CommissionUnit:    o.Units[ir.CommissionUnit],
 				Currency:          b.Config.DefaultCurrency,
 			})
-		case ir.TypeRecv: // sell
+		case ir.TxTypeRecv: // sell
 			err = htsecTradeSellOrderTemplate.Execute(&buf, &HtsecTradeSellOrderVars{
 				PayTime:           o.PayTime,
 				Peer:              o.Peer,
-				TxTypeOriginal:    o.TxTypeOriginal,
 				TypeOriginal:      o.TypeOriginal,
+				TxTypeOriginal:    o.TxTypeOriginal,
 				Item:              o.Item,
 				Amount:            o.Amount,
 				Money:             o.Money,

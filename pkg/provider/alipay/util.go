@@ -1,15 +1,15 @@
 package alipay
 
-func getTxType(str string) Type {
+func getTxType(str string) TxTypeType {
 	switch str {
-	case string(TypeSend):
-		return TypeSend
-	case string(TypeRecv):
-		return TypeRecv
-	case string(TypeOthers):
-		return TypeOthers
-	case string(TypeEmpty):
-		return TypeEmpty
+	case string(TxTypeSend):
+		return TxTypeSend
+	case string(TxTypeRecv):
+		return TxTypeRecv
+	case string(TxTypeOthers):
+		return TxTypeOthers
+	case string(TxTypeEmpty):
+		return TxTypeEmpty
 	}
-	return TypeNil
+	return TxTypeNil
 }

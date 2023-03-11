@@ -37,9 +37,9 @@ type Order struct {
 	Money           float64
 	Note            string
 	PayTime         time.Time
-	Type            Type // 方向，一般为 收/支
+	TxType          TxType // 方向，一般为 收/支
+	TxTypeOriginal  string
 	TypeOriginal    string
-	TxTypeOriginal  string // 交易类型
 	Method          string
 	Amount          float64
 	Price           float64
@@ -49,7 +49,6 @@ type Order struct {
 	MinusAccount    string
 	PlusAccount     string
 	Metadata        map[string]string
-	Tags            []string
 }
 
 // Unit is the key commodity names
@@ -57,8 +56,8 @@ type Unit string
 
 const (
 	BaseUnit       Unit = "BaseUnit"
-	TargetUnit     Unit = "TargetUnit"
-	CommissionUnit Unit = "CommissionUnit"
+	TargetUnit          = "TargetUnit"
+	CommissionUnit      = "CommissionUnit"
 )
 
 // Account is the key for account names
@@ -66,28 +65,28 @@ type Account string
 
 const (
 	CashAccount       Account = "CashAccount"
-	PositionAccount   Account = "PositionAccount"
-	CommissionAccount Account = "CommissionAccount"
-	PnlAccount        Account = "PnlAccount"
-	PlusAccount       Account = "PlusAccount"
-	MinusAccount      Account = "MinusAccount"
+	PositionAccount           = "PositionAccount"
+	CommissionAccount         = "CommissionAccount"
+	PnlAccount                = "PnlAccount"
+	PlusAccount               = "PlusAccount"
+	MinusAccount              = "MinusAccount"
 )
 
-// Type is transaction type defined by alipay.
-type Type string
+// TxType is transanction type defined by alipay.
+type TxType string
 
 const (
-	TypeSend    Type = "Send"
-	TypeRecv    Type = "Recv"
-	TypeUnknown Type = "Unknwon"
+	TxTypeSend    TxType = "Send"
+	TxTypeRecv           = "Recv"
+	TxTypeUnknown        = "Unknwon"
 )
 
 type OrderType string // 为 IR 设置的交易类别
 
 const (
 	OrderTypeNormal          OrderType = "Normal"          // 流水交易
-	OrderTypeHuobiTrade      OrderType = "HuobiTrade"      //  火币交易
-	OrderTypeSecuritiesTrade OrderType = "SecuritiesTrade" // 证券交易
+	OrderTypeHuobiTrade                = "HuobiTrade"      //  火币交易
+	OrderTypeSecuritiesTrade           = "SecuritiesTrade" // 证券交易
 )
 
 // New creates a new IR.
