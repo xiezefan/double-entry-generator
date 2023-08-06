@@ -43,7 +43,7 @@ func (w *CMB) Translate(filename string) (*ir.IR, error) {
 	for {
 		line, err := reader.Read()
 		for index, item := range line {
-			line[index] = convertGBK(item)
+			line[index] = item
 		}
 
 		if err == io.EOF {
@@ -71,6 +71,3 @@ func (w *CMB) Translate(filename string) (*ir.IR, error) {
 	log.Printf("Finished to parse the file %s", filename)
 	return w.convertToIR(), nil
 }
-
-
-
